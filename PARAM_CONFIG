@@ -1,0 +1,12 @@
+udp:n:u
+tcp:n:t
+icmp:n:i
+src:r:s
+dest:r:d
+tcpflag:r:l
+seqnum:r:e
+acknum:r:k
+window:r:w
+ipttl:r:t
+icmptype:r:y
+icmpcode:r:c
