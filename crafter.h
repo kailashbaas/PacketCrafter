@@ -1,14 +1,17 @@
 #ifndef CRAFTER_H
 #define CRAFTER_H
 #include <getopt.h>
+#include <netinet/ip.h>
 
-//void generate_long_options(const char* filename, int* udp_flag, int* tcp_flag, int* icmp_flag, struct options* long_options);
-void generate_udp_packet(char* packet, char* src_address, char* dest_address,
-        char* ip_ttl);
-void generate_tcp_packet(char* packet, char* src_address, char* dest_address,
-        char* tcp_flags, char* tcp_seq_num, char* tcp_ack_num,
-        char* tcp_win_size, char* ip_ttl);
-void generate_icmp_packet(char* packet, char* src_address, char* dest_address,
-        char* icmp_type, char* icmp_code);
-void parseAddrPort(char* addr_port, char* addr, char* port);
+void generate_ip_header(struct iphdr* ip_header, const char* src_addr,
+        const char* dst_addr, const char* ip_ttl);
+void generate_udp_packet(char* packet, const char* src_port,
+        const char* dst_port);
+void generate_tcp_packet(char* packet, const char* src_port,
+        const char* dst_port, const char* tcp_flags, const char* tcp_seq_num,
+        const char* tcp_ack_num, const char* tcp_win_size);
+void generate_icmp_packet(const char* packet, const char* icmp_type,
+        const char* icmp_code);
+void parseAddrPort(const char* addr_port, char* addr, char* port);
+unsigned short checksum(unsigned short* data, int len);
 #endif
