@@ -32,19 +32,7 @@ struct tcppshdr
 
 int main(int argc, char** argv)
 {
-    // Add 1 to the lengths for the null char
-    const int IP_ADDRESS_LEN = 23 + 1; // includes port number and ip address
-    const int NUM_TCP_FLAGS = 6 + 1;
-    const int TCP_SEQ_ACK_LEN = 10 + 1;
-    const int TCP_WIN_SIZE_LEN = 5 + 1;
-    const int IP_TTL_LEN = 3 + 1;
-    const int ICMP_TYPE_LEN = 3 + 1;
-    const int ICMP_CODE_LEN = 2 + 1;
-    static int udp_flag = 0;
-    static int tcp_flag = 0;
-    static int icmp_flag = 0;
-
-    int c;//, udp_flag = 0, tcp_flag = 0, icmp_flag = 0;
+    int c, udp_flag = 0, tcp_flag = 0, icmp_flag = 0;
 
     //generate_long_options(param_config_file, &udp_flag, &tcp_flag, &icmp_flag, long_options);
     static struct option long_options[] = //generate_long_options(param_config_file,
