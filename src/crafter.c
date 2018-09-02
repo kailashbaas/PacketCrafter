@@ -21,8 +21,9 @@ enum OptionField
     VAL
 };*/
 
-// struct for TCP pseudoheader
-struct tcppshdr
+// struct for TCP/UDP pseudoheader for checksum
+// The TCP and UDP pseudoheaders have identical formats
+struct pshdr
 {
     u_int32_t src;
     u_int32_t dst;
@@ -30,9 +31,11 @@ struct tcppshdr
     u_int16_t len;
 };
 
+static int udp_flag, tcp_flag, icmp_flag;
+
 int main(int argc, char** argv)
 {
-    int c, udp_flag = 0, tcp_flag = 0, icmp_flag = 0;
+    int c;//, udp_flag = 0, tcp_flag = 0, icmp_flag = 0;
 
     //generate_long_options(param_config_file, &udp_flag, &tcp_flag, &icmp_flag, long_options);
     static struct option long_options[] = //generate_long_options(param_config_file,
@@ -215,10 +218,26 @@ u_int32_t generate_ip_header(struct iphdr* ip_header, const char* src_addr,
 void generate_udp_packet(char* packet, const char* src_port,
         const char* dst_port)
 {
+    void* csum_hdr = malloc(sizeof(struct pshdr) + sizeof(struct tcphdr));
+    struct pshdr udp_pseudo_header;
     struct udphdr* udp_header = (struct udphdr*) (packet + sizeof(struct iphdr));
+    struct iphdr* ip_hdr = (struct iphdr*) packet;
     udp_header->source = strtol(src_port, NULL, 10);
     udp_header->dest = strtol(dst_port, NULL, 10);
     udp_header->len = sizeof(struct udphdr);
+    udp_header->check = 0;
+
+    udp_pseudo_header.src = (u_int32_t) ip_hdr->saddr;
+    udp_pseudo_header.dst = (u_int32_t) ip_hdr->daddr;
+    udp_pseudo_header.proto = IPPROTO_UDP;
+    udp_pseudo_header.len = sizeof(struct udphdr);
+
+    memcpy(csum_hdr, &udp_pseudo_header, sizeof(udp_pseudo_header));
+    memcpy(csum_hdr + sizeof(struct pshdr), udp_header, sizeof(udp_header));
+    udp_header->check = checksum(csum_hdr, sizeof(struct pshdr) +
+            sizeof(struct udphdr));
+
+    free(csum_hdr);
 }
 
 void generate_tcp_packet(char* packet, const char* src_port,
@@ -226,10 +245,11 @@ void generate_tcp_packet(char* packet, const char* src_port,
         const char* tcp_ack_num, const char* tcp_win_size)
 {
     int i, flag_len;
-    void* csum_hdr = malloc(sizeof(struct tcppshdr) + sizeof(struct tcphdr));
+    void* csum_hdr = malloc(sizeof(struct pshdr) + sizeof(struct tcphdr));
 
-    struct tcppshdr tcp_pseudo_header;// = malloc(sizeof(struct tcppshdr));
+    struct pshdr tcp_pseudo_header;// = malloc(sizeof(struct pshdr));
     struct tcphdr* tcp_hdr = (struct tcphdr*) (packet + sizeof(struct iphdr));
+    struct iphdr* ip_hdr = (struct iphdr*) packet;
     tcp_hdr->source = strtol(src_port, NULL, 10);
     tcp_hdr->dest = strtol(dst_port, NULL, 10);
     tcp_hdr->seq = strtol(tcp_seq_num, NULL, 10);
@@ -243,9 +263,10 @@ void generate_tcp_packet(char* packet, const char* src_port,
     tcp_hdr->fin = 0;
     tcp_hdr->window = strtol(tcp_win_size, NULL, 10);
     tcp_hdr->urg_ptr = 0;
+    tcp_hdr->check = 0;
 
-    tcp_pseudo_header.src = (u_int32_t) tcp_hdr->source;
-    tcp_pseudo_header.dst = (u_int32_t) tcp_hdr->dest;
+    tcp_pseudo_header.src = (u_int32_t) ip_hdr->saddr;
+    tcp_pseudo_header.dst = (u_int32_t) ip_hdr->daddr;
     tcp_pseudo_header.proto = IPPROTO_TCP;
     tcp_pseudo_header.len = sizeof(struct tcphdr);
 
@@ -285,11 +306,10 @@ void generate_tcp_packet(char* packet, const char* src_port,
     }
 
     memcpy(csum_hdr, &tcp_pseudo_header, sizeof(tcp_pseudo_header));
-    memcpy(csum_hdr + sizeof(struct tcppshdr), tcp_hdr, sizeof(struct tcphdr));
+    memcpy(csum_hdr + sizeof(struct pshdr), tcp_hdr, sizeof(struct tcphdr));
     tcp_hdr->check = checksum((u_int16_t*) csum_hdr,
-        sizeof(struct tcphdr) + sizeof(struct tcppshdr));
+        sizeof(struct tcphdr) + sizeof(struct pshdr));
 
-    //free(tcp_pseudo_header);
     free(csum_hdr);
 }
 
